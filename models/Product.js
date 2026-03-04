@@ -16,12 +16,13 @@ const ProductSchema = new Schema(
       type: String,
       required: true,
     },
-    brand: {
-      type: String,
-      required: true,
-    },
+
     stock: {
       type: Number,
+      required: true,
+    },
+    status: {
+      type: String,
       required: true,
     },
     image: {
@@ -31,10 +32,7 @@ const ProductSchema = new Schema(
     imagePublicId: {
       type: String,
     },
-    description: {
-      type: String,
-      required: true,
-    },
+
     size: {
       type: [String],
     },
@@ -52,7 +50,7 @@ const ProductSchema = new Schema(
       default: false,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const Product = model("Product", ProductSchema);

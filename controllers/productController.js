@@ -3,9 +3,10 @@ import { v2 as cloudinary } from "cloudinary";
 import Product from "../models/Product.js";
 import Category from "../models/Category.js";
 import { NotFoundError } from "../errors/customErrors.js";
+
 export const addProduct = async (req, res) => {
   try {
-    const { name, price, description, category, brand, size, stock } = req.body;
+    const { name, price, category, size, stock, status } = req.body;
     let image = "";
     let imagePublicId = "";
     if (req.file) {
@@ -16,15 +17,15 @@ export const addProduct = async (req, res) => {
     }
     const newProduct = new Product({
       productName: name,
-      price: price,
-      description: description,
-      category: category,
-      brand: brand,
+      price,
+      category,
+      status,
       size: size?.split(",") || [],
-      stock: stock,
-      image: image,
-      imagePublicId: imagePublicId,
+      stock,
+      image,
+      imagePublicId,
     });
+
     await newProduct.save();
     res.status(200).json({ message: "product added", newProduct });
   } catch (error) {
@@ -34,17 +35,13 @@ export const addProduct = async (req, res) => {
 
 export const getAllProducts = async (req, res) => {
   try {
-    const { search, currentPage, category, brand, minPrice, maxPrice, sortBy } =
-      req.query;
+    const { search, currentPage, category, minPrice, maxPrice, sortBy } = req.query;
     const queryObject = {};
     if (search) {
       queryObject.productName = { $regex: search, $options: "i" };
     }
     if (category && category !== "ALL") {
       queryObject.category = category;
-    }
-    if (brand && brand !== "ALL") {
-      queryObject.brand = brand;
     }
     if (minPrice && maxPrice) {
       queryObject.price = { $lte: maxPrice, $gte: minPrice };
@@ -90,8 +87,7 @@ export const editProduct = async (req, res) => {
 
     const product = await Product.findById(id);
     if (!product) throw new NotFoundError("No product Found");
-    const { productName, price, description, category, brand, stock } =
-      req.body;
+    const { productName, price, description, category, stock, status } = req.body;
     if (req.file) {
       const file = formatImage(req.file);
       if (product.imagePublicId) {
@@ -107,9 +103,9 @@ export const editProduct = async (req, res) => {
     product.price = price;
     product.description = description;
     product.category = category;
-    product.brand = brand;
-    // if (size) product.size = size?.split(",") || [];
     product.stock = stock;
+    product.status = status;
+
     await product.save();
     res.status(200).json({ message: "Updated Successfully", product });
   } catch (error) {
