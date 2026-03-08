@@ -54,3 +54,19 @@ export const removeFromWishlist = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const clearWishlist = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!user) throw new NotFoundError("No user found");
+
+    user.wishlist = [];
+    await user.save();
+
+    res.status(200).json({
+      message: "Wishlist cleared successfully",
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

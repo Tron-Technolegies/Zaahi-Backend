@@ -41,7 +41,7 @@ export const editCategory = async (req, res) => {
     const category = await Category.findByIdAndUpdate(
       id,
       { categoryName: categoryName },
-      { new: true }
+      { new: true },
     );
     if (!category) throw new NotFoundError("No category Found");
     res.status(200).json({ message: "Updated Successfully", category });
