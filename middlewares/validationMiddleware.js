@@ -101,3 +101,11 @@ export const validateAddAddress = withValidationErrors([
 export const validatePurchaseAddress = withValidationErrors([
   body("address").notEmpty().withMessage("Address is required"),
 ]);
+
+//validate payment
+export const validateCreatePayment = withValidationErrors([
+  body("items").notEmpty().withMessage("Items is required"),
+  body("totalPrice").notEmpty().withMessage("Total price is required"),
+  body("address").notEmpty().withMessage("Address is required"),
+  body("currency").notEmpty().withMessage("Currency is required"),
+]);

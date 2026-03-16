@@ -1,32 +1,113 @@
-import stripe from "../config/stripe.js";
-import User from "../models/User.js";
-import { BadRequestError } from "../errors/customErrors.js";
+import mongoose from "mongoose";
+import Order from "../models/Order.js";
+import Payment from "../models/Payment.js";
+import { createStripePaymentIntent } from "../services/stripeService.js";
+
 export const createPaymentIntent = async (req, res) => {
-  const user = await User.findById(req.user.userId).populate(
-    "cart.product",
-    "price stock",
-  );
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { items, totalPrice, address, currency } = req.body;
+    const itemObj = JSON.parse(items);
+    const addressObj = JSON.parse(address);
+    const order = new Order({
+      user: req.user.userId,
+      totalPrice,
+      currency,
+      orderItems: itemObj,
+      address: addressObj,
+    });
+    const paymentIntent = await createStripePaymentIntent({
+      amount: order.totalPrice * 100,
+      currency: order.currency,
+      orderId: order._id,
+      userId: req.user.userId,
+    });
+    order.paymentIntentId = paymentIntent.id;
+    const payment = new Payment({
+      order: order._id,
+      user: req.user.userId,
+      paymentIntentId: paymentIntent.id,
+      amount: order.totalPrice,
+      currency: order.currency,
+    });
+    await order.save({ session });
+    await payment.save({ session });
+    await session.commitTransaction();
+    session.endSession();
+    res.json({
+      clientSecret: paymentIntent.client_secret,
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    res.status(500).json({ error: error.message });
+  }
+};
 
-  if (!user.cart.length) {
-    throw new BadRequestError("Cart is empty");
+export const stripeWebhook = async (req, res) => {
+  const sig = req.headers["stripe-signature"];
+
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET,
+    );
+  } catch (err) {
+    console.log("Webhook signature verification failed.", err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  let totalAmount = 0;
+  switch (event.type) {
+    case "payment_intent.succeeded": {
+      const paymentIntent = event.data.object;
 
-  for (const item of user.cart) {
-    if (item.product.stock < item.qty) {
-      throw new BadRequestError("Product out of stock");
+      const payment = await Payment.findOne({
+        paymentIntentId: paymentIntent.id,
+      });
+
+      if (!payment) break;
+      if (payment.status === "succeeded") {
+        return res.json({ received: true });
+      }
+
+      payment.status = "succeeded";
+      payment.paymentMethod = paymentIntent.payment_method;
+
+      await payment.save();
+
+      await Order.findByIdAndUpdate(payment.order, {
+        paymentStatus: "paid",
+        status: "Confirmed",
+      });
+
+      break;
     }
-    totalAmount += item.product.price * item.qty;
+
+    case "payment_intent.payment_failed": {
+      const paymentIntent = event.data.object;
+
+      await Payment.findOneAndUpdate(
+        { paymentIntentId: paymentIntent.id },
+        { status: "failed" },
+      );
+
+      break;
+    }
+    case "payment_intent.canceled": {
+      const intent = event.data.object;
+
+      await Payment.findOneAndUpdate(
+        { paymentIntentId: intent.id },
+        { status: "cancelled" },
+      );
+
+      break;
+    }
   }
 
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: totalAmount * 100,
-    currency: "inr",
-  });
-
-  res.json({
-    clientSecret: paymentIntent.client_secret,
-    amount: totalAmount,
-  });
+  res.json({ received: true });
 };

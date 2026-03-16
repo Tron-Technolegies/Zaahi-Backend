@@ -23,23 +23,40 @@ const AddressSchema = new Schema({
   },
 });
 
+const orderItemsSchema = new Schema({
+  product: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Product",
+  },
+  qty: Number,
+  price: Number,
+});
+
 const OrderSchema = new Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: User,
     },
-    product: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: Product,
-    },
-    qty: {
-      type: Number,
-      required: true,
+    orderItems: {
+      type: [orderItemsSchema],
     },
     totalPrice: {
       type: Number,
       required: true,
+    },
+    currency: {
+      type: String,
+      default: "aed",
+    },
+
+    paymentStatus: {
+      type: String,
+      enum: ["pending", "paid", "failed"],
+      default: "pending",
+    },
+    paymentIntentId: {
+      type: String,
     },
     status: {
       type: String,
@@ -48,11 +65,11 @@ const OrderSchema = new Schema(
       required: true,
     },
     address: {
-      type: [AddressSchema],
+      type: AddressSchema,
       required: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const Order = model("Order", OrderSchema);
