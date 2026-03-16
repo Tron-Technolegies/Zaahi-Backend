@@ -232,3 +232,15 @@ export const cancelOrder = async (req, res) => {
     order,
   });
 };
+
+export const getSingleOrder = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) throw new NotFoundError("No order found");
+    res.status(200).json(order);
+  } catch (error) {
+    res
+      .status(error.statusCode || 500)
+      .json({ message: error.message || error.msg });
+  }
+};
