@@ -5,7 +5,7 @@ export const getUserInfo = async (req, res) => {
   try {
     const { userId } = req.user;
     const user = await User.findById(userId)
-      .select('username email phone role cart')
+      .select('username email phoneNumber avatar role cart')
       .lean();
     if (!user) throw new NotFoundError('No user found');
     res.status(200).json(user);
