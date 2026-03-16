@@ -17,6 +17,7 @@ import couponRouter from './routes/couponRouter.js';
 import wishlistRouter from './routes/wishlistRouter.js';
 import orderRouter from './routes/orderRouter.js';
 import paymentRouter from './routes/paymentRouter.js';
+import profileRouter from './routes/profileRouter.js';
 import { v2 as cloudinary } from 'cloudinary';
 import errorHandleMiddleware from './middlewares/errorHandlingMiddleware.js';
 
@@ -79,6 +80,7 @@ app.use('/api/v1/review', authenticateUser, reviewRouter);
 app.use('/api/v1/purchase', authenticateUser, purchaseRouter);
 app.use('/api/v1/order', orderRouter);
 app.use('/api/v1/wishlist', authenticateUser, wishlistRouter);
+app.use('/api/v1/myprofile', authenticateUser, profileRouter);
 app.use('/api/v1/payment', authenticateUser, paymentRouter);
 app.use('/api/v1/coupon', authenticateUser, isAdmin, couponRouter);
 
