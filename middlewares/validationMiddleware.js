@@ -1,5 +1,6 @@
 import { body, validationResult } from "express-validator";
 import { BadRequestError } from "../errors/customErrors.js";
+import User from "../models/User.js";
 
 const withValidationErrors = (validateValues) => {
   return [
@@ -105,7 +106,22 @@ export const validatePurchaseAddress = withValidationErrors([
 //validate payment
 export const validateCreatePayment = withValidationErrors([
   body("items").notEmpty().withMessage("Items is required"),
-  body("totalPrice").notEmpty().withMessage("Total price is required"),
   body("address").notEmpty().withMessage("Address is required"),
   body("currency").notEmpty().withMessage("Currency is required"),
+]);
+
+export const validateUpdateUserProfile = withValidationErrors([
+  body("username").notEmpty().withMessage("username is required"),
+  body("phoneNumber").notEmpty().withMessage("phoneNumber is required"),
+  body("email")
+    .notEmpty()
+    .withMessage("Email is required")
+    .isEmail()
+    .withMessage("Invalid email format")
+    .custom(async (email, { req }) => {
+      const user = await User.findOne({ email: email });
+      if (user && user._id.toString() !== req.user.userId.toString()) {
+        throw new BadRequestError("email already exists");
+      }
+    }),
 ]);

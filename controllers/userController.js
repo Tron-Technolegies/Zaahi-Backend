@@ -1,13 +1,13 @@
-import { NotFoundError } from '../errors/customErrors.js';
-import User from '../models/User.js';
+import { NotFoundError } from "../errors/customErrors.js";
+import User from "../models/User.js";
 
 export const getUserInfo = async (req, res) => {
   try {
     const { userId } = req.user;
     const user = await User.findById(userId)
-      .select('username email phone role cart')
+      .select("username email phoneNumber role cart")
       .lean();
-    if (!user) throw new NotFoundError('No user found');
+    if (!user) throw new NotFoundError("No user found");
     res.status(200).json(user);
   } catch (error) {
     res.status(error.statusCode || 500).json({ error: error.message });
@@ -17,9 +17,9 @@ export const getUserInfo = async (req, res) => {
 export const getAllUsers = async (req, res) => {
   try {
     const { search, currentPage } = req.query;
-    const queryObject = { role: { $ne: 'Admin' } };
-    if (search && search !== '') {
-      const searchRegex = new RegExp(search, 'i');
+    const queryObject = { role: { $ne: "Admin" } };
+    if (search && search !== "") {
+      const searchRegex = new RegExp(search, "i");
 
       queryObject.$or = [{ username: searchRegex }, { email: searchRegex }];
     }
@@ -35,6 +35,21 @@ export const getAllUsers = async (req, res) => {
     const totalUsers = await User.countDocuments(queryObject);
     const totalPages = Math.ceil(totalUsers / limit);
     res.status(200).json({ users, totalPages, totalUsers });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ error: error.message });
+  }
+};
+
+export const updateUserProfile = async (req, res) => {
+  try {
+    const { username, email, phoneNumber } = req.body;
+    const user = await User.findById(req.user.userId);
+    if (!user) throw new NotFoundError("No user found");
+    user.username = username;
+    user.email = email.toLowerCase();
+    user.phoneNumber = phoneNumber;
+    await user.save();
+    res.status(200).json({ message: "success" });
   } catch (error) {
     res.status(error.statusCode || 500).json({ error: error.message });
   }

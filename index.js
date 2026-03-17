@@ -26,6 +26,7 @@ import {
 } from "./middlewares/authenticationMiddleware.js";
 import cookieParser from "cookie-parser";
 import { stripeWebhook } from "./controllers/paymentController.js";
+import morgan from "morgan";
 
 const app = express();
 const port = 3000;
@@ -36,6 +37,9 @@ app.post(
   stripeWebhook,
 );
 app.use(express.json());
+if(process.env.NODE_ENV === "development"){
+  app.use(morgan("tiny"))
+}
 app.use(
   cors({
     origin: (origin, callback) => {
