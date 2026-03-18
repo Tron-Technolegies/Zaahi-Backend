@@ -1,8 +1,13 @@
 import mongoose, { model, Schema } from "mongoose";
+import { type } from "os";
 
 const AddressSchema = new Schema({
   name: {
     type: String,
+  },
+  isDefault: {
+    type: Boolean,
+    default: false,
   },
   street: {
     type: String,
