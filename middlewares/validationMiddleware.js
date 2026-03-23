@@ -125,3 +125,11 @@ export const validateUpdateUserProfile = withValidationErrors([
       }
     }),
 ]);
+
+export const validateUpdatePassword = withValidationErrors([
+  body("currentPassword")
+    .notEmpty()
+    .withMessage("Current Password is required"),
+  body("newPassword").notEmpty().withMessage("New Password is required"),
+  body("confirm").notEmpty().withMessage("Please Confirm new Password"),
+]);

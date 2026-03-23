@@ -5,17 +5,21 @@ import { createStripePaymentIntent } from "../services/stripeService.js";
 import User from "../models/User.js";
 import { BadRequestError, NotFoundError } from "../errors/customErrors.js";
 import Product from "../models/Product.js";
+import stripe from "../config/stripe.js";
 
 export const createPaymentIntent = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const { items,  address, currency } = req.body;
+    const { items, address, currency } = req.body;
     const itemObj = JSON.parse(items);
     const addressObj = JSON.parse(address);
-    const user = await User.findById(req.user.userId).session(session)
-    if(!user) throw new NotFoundError("No user found")
-    const totalPrice = itemObj.reduce((sum, item)=> sum + (item.qty * item.price), 0)
+    const user = await User.findById(req.user.userId).session(session);
+    if (!user) throw new NotFoundError("No user found");
+    const totalPrice = itemObj.reduce(
+      (sum, item) => sum + item.qty * item.price,
+      0,
+    );
     const order = new Order({
       user: req.user.userId,
       totalPrice,
@@ -37,8 +41,8 @@ export const createPaymentIntent = async (req, res) => {
       amount: order.totalPrice,
       currency: order.currency,
     });
-    user.cart =[]
-    await user.save({session})
+    user.cart = [];
+    await user.save({ session });
     await order.save({ session });
     await payment.save({ session });
     await session.commitTransaction();
@@ -61,7 +65,7 @@ export const stripeWebhook = async (req, res) => {
     event = stripe.webhooks.constructEvent(
       req.body,
       sig,
-      process.env.STRIPE_WEBHOOK_SECRET
+      process.env.STRIPE_WEBHOOK_SECRET,
     );
   } catch (err) {
     console.log("Webhook signature verification failed.", err.message);
@@ -85,7 +89,7 @@ export const stripeWebhook = async (req, res) => {
           status: "succeeded",
           paymentMethod: paymentIntent.payment_method,
         },
-        { new: true, session }
+        { new: true, session },
       );
 
       if (!payment) {
@@ -100,7 +104,7 @@ export const stripeWebhook = async (req, res) => {
           paymentStatus: "paid",
           status: "Confirmed",
         },
-        { new: true, session }
+        { new: true, session },
       );
 
       if (!order) throw new Error("Order not found");
@@ -116,7 +120,6 @@ export const stripeWebhook = async (req, res) => {
 
       await session.commitTransaction();
       session.endSession();
-
     } catch (err) {
       await session.abortTransaction();
       session.endSession();
@@ -127,14 +130,14 @@ export const stripeWebhook = async (req, res) => {
   if (event.type === "payment_intent.payment_failed") {
     await Payment.findOneAndUpdate(
       { paymentIntentId: event.data.object.id },
-      { status: "failed" }
+      { status: "failed" },
     );
   }
 
   if (event.type === "payment_intent.canceled") {
     await Payment.findOneAndUpdate(
       { paymentIntentId: event.data.object.id },
-      { status: "cancelled" }
+      { status: "cancelled" },
     );
   }
 

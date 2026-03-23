@@ -93,7 +93,9 @@ export const makeDefaultAddress = async (req, res) => {
     if (!user) throw new NotFoundError("No user found");
 
     const oldDefault = user.address.find((addr) => addr.isDefault === true);
-    oldDefault.isDefault = false;
+    if (oldDefault) {
+      oldDefault.isDefault = false;
+    }
 
     const address = user.address.find(
       (addr) => addr._id.toString() === addressId.toString(),

@@ -1,5 +1,6 @@
-import { NotFoundError } from "../errors/customErrors.js";
+import { BadRequestError, NotFoundError } from "../errors/customErrors.js";
 import User from "../models/User.js";
+import bcrypt from "bcryptjs";
 
 export const getUserInfo = async (req, res) => {
   try {
@@ -50,6 +51,25 @@ export const updateUserProfile = async (req, res) => {
     user.phoneNumber = phoneNumber;
     await user.save();
     res.status(200).json({ message: "success" });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ error: error.message });
+  }
+};
+
+export const updatePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword, confirm } = req.body;
+    if (newPassword !== confirm)
+      throw new BadRequestError("Passwords doesnt match");
+    const user = await User.findById(req.user.userId);
+    if (!user) throw new NotFoundError("User not found");
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) throw new BadRequestError("Current Password is Invalid");
+    const salt = await bcrypt.genSalt(10);
+    const hashed = await bcrypt.hash(newPassword, salt);
+    user.password = hashed;
+    await user.save();
+    res.status(200).json({ message: "Success" });
   } catch (error) {
     res.status(error.statusCode || 500).json({ error: error.message });
   }
