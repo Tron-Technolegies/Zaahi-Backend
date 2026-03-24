@@ -132,7 +132,7 @@ export const getAllOrders = async (req, res) => {
     const orders = await Order.find(queryObject)
       .sort({ createdAt: -1 })
       .populate("user", "username email")
-      .populate("product", "productName")
+      // .populate("product", "productName")
       .skip(skip)
       .limit(limit);
     const totalOrders = await Order.countDocuments(queryObject);

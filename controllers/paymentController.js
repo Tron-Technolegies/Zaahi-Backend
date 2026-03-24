@@ -13,13 +13,18 @@ export const createPaymentIntent = async (req, res) => {
   try {
     const { items, address, currency } = req.body;
     const itemObj = JSON.parse(items);
+    const orderItems = [];
+    let totalPrice = 0;
+    for (const item of itemObj) {
+      const product = await Product.findById(item);
+    }
     const addressObj = JSON.parse(address);
     const user = await User.findById(req.user.userId).session(session);
     if (!user) throw new NotFoundError("No user found");
-    const totalPrice = itemObj.reduce(
-      (sum, item) => sum + item.qty * item.price,
-      0,
-    );
+    // const totalPrice = itemObj.reduce(
+    //   (sum, item) => sum + item.qty * item.price,
+    //   0,
+    // );
     const order = new Order({
       user: req.user.userId,
       totalPrice,

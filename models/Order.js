@@ -28,15 +28,33 @@ const orderItemsSchema = new Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Product",
   },
-  qty: Number,
-  price: Number,
+
+  productName: String, // snapshot (important)
+  image: String, // snapshot
+
+  variant: {
+    size: String,
+    // future ready 👇
+    color: String,
+    sku: String,
+  },
+
+  qty: {
+    type: Number,
+    required: true,
+  },
+
+  price: {
+    type: Number,
+    required: true, // price at time of purchase
+  },
 });
 
 const OrderSchema = new Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: User,
+      ref: "User",
     },
     orderItems: {
       type: [orderItemsSchema],

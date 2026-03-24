@@ -6,7 +6,8 @@ import { NotFoundError } from "../errors/customErrors.js";
 
 export const addProduct = async (req, res) => {
   try {
-    const { name, price, category, size, stock, status } = req.body;
+    const { name, price, category, size, stock, brand, isFeatured, specs } =
+      req.body;
     let image = "";
     let imagePublicId = "";
     if (req.file) {
@@ -35,7 +36,8 @@ export const addProduct = async (req, res) => {
 
 export const getAllProducts = async (req, res) => {
   try {
-    const { search, currentPage, category, minPrice, maxPrice, sortBy } = req.query;
+    const { search, currentPage, category, minPrice, maxPrice, sortBy } =
+      req.query;
     const queryObject = {};
     if (search) {
       queryObject.productName = { $regex: search, $options: "i" };
@@ -54,7 +56,7 @@ export const getAllProducts = async (req, res) => {
       sortKey = { price: 1 };
     }
     const page = Number(currentPage) || 1;
-    const limit = 20;
+    const limit = 10;
     const skip = (page - 1) * limit;
     const products = await Product.find(queryObject)
 
@@ -87,7 +89,8 @@ export const editProduct = async (req, res) => {
 
     const product = await Product.findById(id);
     if (!product) throw new NotFoundError("No product Found");
-    const { productName, price, description, category, stock, status } = req.body;
+    const { productName, price, description, category, stock, status } =
+      req.body;
     if (req.file) {
       const file = formatImage(req.file);
       if (product.imagePublicId) {

@@ -22,6 +22,12 @@ const ReviewSchema = new Schema(
       type: Number,
       required: true,
     },
+    image: {
+      type: String,
+    },
+    imagePublicId: {
+      type: String,
+    },
   },
   { timestamps: true },
 );

@@ -2,13 +2,50 @@ import { model, Schema } from "mongoose";
 import Category from "./Category.js";
 import Brand from "./Brand.js";
 
+const SpecsSchema = new Schema({
+  spec: String,
+  value: String,
+});
+const ImageSchema = new Schema(
+  {
+    url: {
+      type: String,
+    },
+    publicId: {
+      type: String,
+    },
+  },
+  { _id: false },
+);
+
+const VariantSchema = new Schema({
+  size: {
+    type: String,
+    required: true,
+  },
+  color: {
+    type: String,
+  },
+  price: {
+    type: Number,
+    required: true,
+  },
+  stock: {
+    type: Number,
+    required: true,
+  },
+  sku: {
+    type: String,
+  },
+});
+
 const ProductSchema = new Schema(
   {
     productName: {
       type: String,
       required: true,
     },
-    price: {
+    basePrice: {
       type: Number,
       required: true,
     },
@@ -17,27 +54,15 @@ const ProductSchema = new Schema(
       required: true,
     },
 
-    stock: {
-      type: Number,
-      required: true,
-    },
     status: {
       type: String,
     },
-    image: {
-      type: String,
-      required: true,
-    },
-    imagePublicId: {
-      type: String,
-    },
+    image: ImageSchema,
 
-    size: {
-      type: [String],
+    variants: {
+      type: [VariantSchema],
     },
-    specification: {
-      type: Map,
-    },
+    specification: [SpecsSchema],
     rating: {
       type: Number,
     },
@@ -48,6 +73,7 @@ const ProductSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    extraImages: [ImageSchema],
   },
   { timestamps: true },
 );

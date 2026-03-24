@@ -25,7 +25,7 @@ export const getAllUsers = async (req, res) => {
       queryObject.$or = [{ username: searchRegex }, { email: searchRegex }];
     }
     const page = Number(currentPage || 1);
-    const limit = 2;
+    const limit = 20;
     const skip = (page - 1) * limit;
     const users = await User.find(queryObject)
       .sort({
