@@ -16,20 +16,34 @@ export const createPaymentIntent = async (req, res) => {
     const orderItems = [];
     let totalPrice = 0;
     for (const item of itemObj) {
-      const product = await Product.findById(item);
+      const product = await Product.findById(item.product).session(session);
+      if (!product) throw new NotFoundError("Product Not found");
+      const variant = product.variants.find((v) => v.size === item.size);
+      if (!variant) throw new BadRequestError("Invalid variant");
+      if (variant.stock < item.qty)
+        throw new BadRequestError("Insufficient Stock");
+      const itemTotal = variant.price * item.qty;
+      totalPrice += itemTotal;
+      orderItems.push({
+        product: product._id,
+        productName: product.productName,
+        image: product.image?.url,
+        variant: {
+          size: variant.size,
+        },
+        qty: item.qty,
+        price: variant.price,
+      });
     }
     const addressObj = JSON.parse(address);
     const user = await User.findById(req.user.userId).session(session);
     if (!user) throw new NotFoundError("No user found");
-    // const totalPrice = itemObj.reduce(
-    //   (sum, item) => sum + item.qty * item.price,
-    //   0,
-    // );
+
     const order = new Order({
       user: req.user.userId,
       totalPrice,
       currency,
-      orderItems: itemObj,
+      orderItems: orderItems,
       address: addressObj,
     });
     const paymentIntent = await createStripePaymentIntent({
@@ -119,7 +133,12 @@ export const stripeWebhook = async (req, res) => {
         const product = await Product.findById(item.product).session(session);
         if (!product) continue;
 
-        product.stock = Math.max(0, product.stock - item.qty);
+        const variant = product.variants.find(
+          (v) => v.size === item.variant.size,
+        );
+        if (!variant) continue;
+
+        variant.stock = Math.max(0, variant.stock - item.qty);
         await product.save({ session });
       }
 

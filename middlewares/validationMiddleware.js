@@ -56,13 +56,12 @@ export const validateAddCategory = withValidationErrors([
 //product
 export const validateAddProduct = withValidationErrors([
   body("name").notEmpty().withMessage("Product name is required"),
-  body("price").notEmpty().withMessage("Price name is required"),
-  // body("description").notEmpty().withMessage("Description name is required"),
+  body("price").notEmpty().withMessage("Base Price is required"),
+  body("description").notEmpty().withMessage("Description name is required"),
   body("category").notEmpty().withMessage("Category name is required"),
-
-  // body("brand").notEmpty().withMessage("Brand name is required"),
-  body("stock").notEmpty().withMessage("Stock name is required"),
-  body("status").notEmpty().withMessage("status  is required"),
+  body("brand").notEmpty().withMessage("Brand name is required"),
+  body("size").notEmpty().withMessage("Size details is required"),
+  body("specs").notEmpty().withMessage("specs  is required"),
 ]);
 
 export const validateAddCart = withValidationErrors([

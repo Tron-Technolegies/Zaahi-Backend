@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   addProduct,
+  deleteImage,
   deleteProduct,
   editProduct,
   getAllProducts,
@@ -18,9 +19,12 @@ router.post(
   "/",
   authenticateUser,
   isAdmin,
-  upload.single("image"),
+  upload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "extraImages", maxCount: 10 },
+  ]),
   validateAddProduct,
-  addProduct
+  addProduct,
 );
 router.get("/", getAllProducts);
 router.get("/:id", getSingleProduct);
@@ -28,8 +32,13 @@ router.patch(
   "/edit/:id",
   authenticateUser,
   isAdmin,
-  upload.single("image"),
-  editProduct
+  upload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "extraImages", maxCount: 10 },
+  ]),
+  validateAddProduct,
+  editProduct,
 );
+router.patch("/delete-image", authenticateUser, isAdmin, deleteImage);
 router.delete("/delete/:id", authenticateUser, isAdmin, deleteProduct);
 export default router;

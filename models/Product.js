@@ -53,12 +53,14 @@ const ProductSchema = new Schema(
       type: String,
       required: true,
     },
-
+    brand: {
+      type: String,
+    },
     status: {
       type: String,
     },
     image: ImageSchema,
-
+    description: String,
     variants: {
       type: [VariantSchema],
     },
