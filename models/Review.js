@@ -1,6 +1,16 @@
 import mongoose, { model, Schema } from "mongoose";
-import User from "./User.js";
-import Product from "./Product.js";
+
+const ImageSchema = new Schema(
+  {
+    url: {
+      type: String,
+    },
+    publicId: {
+      type: String,
+    },
+  },
+  { _id: false },
+);
 
 const ReviewSchema = new Schema(
   {
@@ -23,10 +33,7 @@ const ReviewSchema = new Schema(
       required: true,
     },
     image: {
-      type: String,
-    },
-    imagePublicId: {
-      type: String,
+      type: ImageSchema,
     },
   },
   { timestamps: true },

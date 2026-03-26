@@ -132,3 +132,9 @@ export const validateUpdatePassword = withValidationErrors([
   body("newPassword").notEmpty().withMessage("New Password is required"),
   body("confirm").notEmpty().withMessage("Please Confirm new Password"),
 ]);
+
+export const validateAddReview = withValidationErrors([
+  body("productId").notEmpty().withMessage("Product Id is required"),
+  body("rating").notEmpty().withMessage("Rating is required"),
+  body("review").notEmpty().withMessage("Review is required"),
+]);

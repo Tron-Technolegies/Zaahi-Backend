@@ -62,8 +62,16 @@ export const addProduct = async (req, res) => {
 
 export const getAllProducts = async (req, res) => {
   try {
-    const { search, currentPage, category, minPrice, maxPrice, sortBy } =
-      req.query;
+    const {
+      search,
+      currentPage,
+      category,
+      minPrice,
+      maxPrice,
+      sortBy,
+      isFeatured,
+      newArrivals,
+    } = req.query;
     const queryObject = {};
     if (search) {
       queryObject.productName = { $regex: search, $options: "i" };
@@ -74,15 +82,21 @@ export const getAllProducts = async (req, res) => {
     if (minPrice && maxPrice) {
       queryObject.basePrice = { $lte: maxPrice, $gte: minPrice };
     }
+    if (String(isFeatured) === "true") {
+      queryObject.isFeatured = true;
+    }
     let sortKey = { createdAt: -1 };
     if (sortBy === "ascending") {
-      sortKey = { price: -1 };
+      sortKey = { basePrice: 1 };
     }
     if (sortBy === "descending") {
-      sortKey = { price: 1 };
+      sortKey = { basePrice: -1 };
+    }
+    if (String(newArrivals) === "true") {
+      sortKey = { createdAt: -1 };
     }
     const page = Number(currentPage) || 1;
-    const limit = 10;
+    const limit = 20;
     const skip = (page - 1) * limit;
     const products = await Product.find(queryObject)
 

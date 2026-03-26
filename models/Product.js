@@ -67,9 +67,15 @@ const ProductSchema = new Schema(
     specification: [SpecsSchema],
     rating: {
       type: Number,
+      default: 0,
     },
     totalReviews: {
       type: Number,
+      default: 0,
+    },
+    sumRating: {
+      type: Number,
+      default: 0,
     },
     isFeatured: {
       type: Boolean,
