@@ -1,12 +1,12 @@
-import { NotFoundError } from "../errors/customErrors.js";
-import User from "../models/User.js";
+import { NotFoundError } from '../errors/customErrors.js';
+import User from '../models/User.js';
 
 export const addAddress = async (req, res) => {
   try {
     const { name, street, state, country, pin, phone } = req.body;
     const { userId } = req.user;
     const user = await User.findById(userId);
-    if (!user) throw new NotFoundError("No User Found");
+    if (!user) throw new NotFoundError('No User Found');
     const newAddress = {
       name,
       street,
@@ -24,7 +24,7 @@ export const addAddress = async (req, res) => {
     await user.save();
 
     res.status(200).json({
-      message: "Address added successfully",
+      message: 'Address added successfully',
       newAddress,
     });
   } catch (error) {
@@ -39,7 +39,7 @@ export const updateAddress = async (req, res) => {
     const { name, street, state, country, pin, phone } = req.body;
 
     const user = await User.findById(userId);
-    if (!user) throw new NotFoundError("No user Found");
+    if (!user) throw new NotFoundError('No user Found');
     const address = user.address.find(
       (addr) => addr._id.toString() === addressId.toString(),
     );
@@ -54,7 +54,7 @@ export const updateAddress = async (req, res) => {
     await user.save();
 
     res.status(200).json({
-      message: "Address updated successfully",
+      message: 'Address updated successfully',
       address: address,
     });
   } catch (error) {
@@ -62,22 +62,54 @@ export const updateAddress = async (req, res) => {
   }
 };
 
+// export const removeAddress = async (req, res) => {
+//   try {
+//     const { userId } = req.user;
+//     const { addressId } = req.params;
+//     const user = await User.findById(userId);
+//     if (!user) throw new NotFoundError('No user Found');
+
+//     user.address = user.address.filter(
+//       (address) => address._id.toString() !== addressId.toString(),
+//     );
+
+//     await user.save();
+
+//     res.status(200).json({
+//       message: 'Address removed',
+//       addresses: user.address,
+//     });
+//   } catch (error) {
+//     res.status(error.statusCode || 500).json({ error: error.message });
+//   }
+// };
+
 export const removeAddress = async (req, res) => {
   try {
     const { userId } = req.user;
     const { addressId } = req.params;
+
     const user = await User.findById(userId);
-    if (!user) throw new NotFoundError("No user Found");
+    if (!user) throw new NotFoundError('No user Found');
 
     user.address = user.address.filter(
       (address) => address._id.toString() !== addressId.toString(),
     );
 
+    if (user.defaultAddress?._id?.toString() === addressId) {
+      if (user.address.length > 0) {
+        user.defaultAddress = user.address[0];
+      } else {
+        user.defaultAddress = undefined;
+      }
+    }
+
     await user.save();
 
     res.status(200).json({
-      message: "Address removed",
+      message: 'Address removed',
       addresses: user.address,
+      defaultAddress: user.defaultAddress,
     });
   } catch (error) {
     res.status(error.statusCode || 500).json({ error: error.message });
@@ -90,7 +122,7 @@ export const makeDefaultAddress = async (req, res) => {
     const { userId } = req.user;
 
     const user = await User.findById(userId);
-    if (!user) throw new NotFoundError("No user found");
+    if (!user) throw new NotFoundError('No user found');
 
     const oldDefault = user.address.find((addr) => addr.isDefault === true);
     if (oldDefault) {
@@ -102,7 +134,7 @@ export const makeDefaultAddress = async (req, res) => {
     );
 
     if (!address) {
-      throw new NotFoundError("Address not found");
+      throw new NotFoundError('Address not found');
     }
 
     // set as default
@@ -112,7 +144,7 @@ export const makeDefaultAddress = async (req, res) => {
     await user.save();
 
     res.status(200).json({
-      message: "Default address updated successfully",
+      message: 'Default address updated successfully',
       defaultAddress: user.defaultAddress,
     });
   } catch (error) {
@@ -123,9 +155,9 @@ export const getAddresses = async (req, res) => {
   try {
     const { userId } = req.user;
 
-    const user = await User.findById(userId).select("address defaultAddress");
+    const user = await User.findById(userId).select('address defaultAddress');
 
-    if (!user) throw new NotFoundError("No user Found");
+    if (!user) throw new NotFoundError('No user Found');
 
     res.status(200).json({
       addresses: user.address,
