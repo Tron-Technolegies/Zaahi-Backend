@@ -37,8 +37,9 @@ export const loginUser = async (req, res) => {
     const tenDay = 1000 * 60 * 60 * 24 * 10;
     res.cookie("token", token, {
       httpOnly: true,
+      sameSite: "none",
       expires: new Date(Date.now() + tenDay),
-      secure: process.env.NODE_ENV === "production",
+      secure: true,
     });
     res.status(200).json({ message: "Logged in success" });
   } catch (error) {
