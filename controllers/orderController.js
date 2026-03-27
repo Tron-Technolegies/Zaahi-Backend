@@ -51,73 +51,73 @@ import Product from "../models/Product.js";
 //   }
 // };
 
-export const confirmOrder = async (req, res) => {
-  const session = await mongoose.startSession();
+// export const confirmOrder = async (req, res) => {
+//   const session = await mongoose.startSession();
 
-  try {
-    session.startTransaction();
+//   try {
+//     session.startTransaction();
 
-    const { paymentId, address } = req.body;
-    const userId = req.user.userId;
+//     const { paymentId, address } = req.body;
+//     const userId = req.user.userId;
 
-    if (!paymentId) {
-      throw new BadRequestError("Payment ID is required");
-    }
+//     if (!paymentId) {
+//       throw new BadRequestError("Payment ID is required");
+//     }
 
-    const user = await User.findById(userId)
-      .populate("cart.product", "productName price stock")
-      .session(session);
+//     const user = await User.findById(userId)
+//       .populate("cart.product", "productName price stock")
+//       .session(session);
 
-    if (!user) throw new NotFoundError("User not found");
-    if (user.cart.length === 0) throw new BadRequestError("Cart is empty");
+//     if (!user) throw new NotFoundError("User not found");
+//     if (user.cart.length === 0) throw new BadRequestError("Cart is empty");
 
-    let grandTotal = 0;
+//     let grandTotal = 0;
 
-    for (const cartItem of user.cart) {
-      const { product, qty } = cartItem;
+//     for (const cartItem of user.cart) {
+//       const { product, qty } = cartItem;
 
-      if (product.stock < qty) {
-        throw new BadRequestError(`${product.productName} is out of stock`);
-      }
+//       if (product.stock < qty) {
+//         throw new BadRequestError(`${product.productName} is out of stock`);
+//       }
 
-      const totalPrice = product.price * qty;
+//       const totalPrice = product.price * qty;
 
-      const newOrder = new Order({
-        user: userId,
-        product: product._id,
-        qty,
-        totalPrice,
-        paymentId,
-        status: "Confirmed",
-        address,
-      });
+//       const newOrder = new Order({
+//         user: userId,
+//         product: product._id,
+//         qty,
+//         totalPrice,
+//         paymentId,
+//         status: "Confirmed",
+//         address,
+//       });
 
-      product.stock -= qty;
-      grandTotal += totalPrice;
+//       product.stock -= qty;
+//       grandTotal += totalPrice;
 
-      await product.save({ session });
-      await newOrder.save({ session });
+//       await product.save({ session });
+//       await newOrder.save({ session });
 
-      user.orders.push(newOrder._id);
-    }
+//       user.orders.push(newOrder._id);
+//     }
 
-    user.cart = [];
-    await user.save({ session });
+//     user.cart = [];
+//     await user.save({ session });
 
-    await session.commitTransaction();
-    session.endSession();
+//     await session.commitTransaction();
+//     session.endSession();
 
-    res.status(200).json({
-      success: true,
-      message: "Order placed successfully",
-      grandTotal,
-    });
-  } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    res.status(error.statusCode || 500).json({ error: error.message });
-  }
-};
+//     res.status(200).json({
+//       success: true,
+//       message: "Order placed successfully",
+//       grandTotal,
+//     });
+//   } catch (error) {
+//     await session.abortTransaction();
+//     session.endSession();
+//     res.status(error.statusCode || 500).json({ error: error.message });
+//   }
+// };
 
 export const getAllOrders = async (req, res) => {
   try {
@@ -132,7 +132,7 @@ export const getAllOrders = async (req, res) => {
     const orders = await Order.find(queryObject)
       .sort({ createdAt: -1 })
       .populate("user", "username email")
-      .populate("product", "productName")
+      // .populate("product", "productName")
       .skip(skip)
       .limit(limit);
     const totalOrders = await Order.countDocuments(queryObject);
@@ -154,12 +154,12 @@ export const getAllUserOrders = async (req, res) => {
     }
 
     const page = Number(currentPage) || 1;
-    const limit = 15;
+    const limit = 10;
     const skip = (page - 1) * limit;
 
     const orders = await Order.find(queryObject)
       .sort({ createdAt: -1 })
-      .populate("product", "productName price image")
+      .populate("orderItems.product", "productName price image")
       .skip(skip)
       .limit(limit);
 
@@ -187,12 +187,8 @@ export const updateOrderStatus = async (req, res) => {
     if (!order) throw new NotFoundError("No order Found");
     order.status = status;
     await order.save();
-    const populateOrder = await Order.findById(orderId)
-      .populate("user", "username")
-      .populate("product", "productName price");
     res.status(200).json({
       message: "order status updated successfully",
-      order: populateOrder,
     });
   } catch (error) {
     res.status(error.statusCode || 500).json({ error: error.message });

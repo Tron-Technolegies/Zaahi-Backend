@@ -1,8 +1,13 @@
-import mongoose, { model, Schema } from 'mongoose';
+import mongoose, { model, Schema } from "mongoose";
+import { type } from "os";
 
 const AddressSchema = new Schema({
   name: {
     type: String,
+  },
+  isDefault: {
+    type: Boolean,
+    default: false,
   },
   street: {
     type: String,
@@ -25,6 +30,14 @@ const cartSchema = new Schema({
   product: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Product',
+  },
+  variant: {
+    size: {
+      type: String,
+      required: true,
+    },
+    // future ready 👇
+    color: String,
   },
   qty: {
     type: Number,

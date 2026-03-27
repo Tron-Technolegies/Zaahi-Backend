@@ -1,6 +1,16 @@
 import mongoose, { model, Schema } from "mongoose";
-import User from "./User.js";
-import Product from "./Product.js";
+
+const ImageSchema = new Schema(
+  {
+    url: {
+      type: String,
+    },
+    publicId: {
+      type: String,
+    },
+  },
+  { _id: false },
+);
 
 const ReviewSchema = new Schema(
   {
@@ -21,6 +31,9 @@ const ReviewSchema = new Schema(
     rating: {
       type: Number,
       required: true,
+    },
+    image: {
+      type: ImageSchema,
     },
   },
   { timestamps: true },

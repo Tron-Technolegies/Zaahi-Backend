@@ -1,5 +1,6 @@
 import { body, validationResult } from "express-validator";
 import { BadRequestError } from "../errors/customErrors.js";
+import User from "../models/User.js";
 
 const withValidationErrors = (validateValues) => {
   return [
@@ -55,13 +56,12 @@ export const validateAddCategory = withValidationErrors([
 //product
 export const validateAddProduct = withValidationErrors([
   body("name").notEmpty().withMessage("Product name is required"),
-  body("price").notEmpty().withMessage("Price name is required"),
-  // body("description").notEmpty().withMessage("Description name is required"),
+  body("price").notEmpty().withMessage("Base Price is required"),
+  body("description").notEmpty().withMessage("Description name is required"),
   body("category").notEmpty().withMessage("Category name is required"),
-
-  // body("brand").notEmpty().withMessage("Brand name is required"),
-  body("stock").notEmpty().withMessage("Stock name is required"),
-  body("status").notEmpty().withMessage("status  is required"),
+  body("brand").notEmpty().withMessage("Brand name is required"),
+  body("size").notEmpty().withMessage("Size details is required"),
+  body("specs").notEmpty().withMessage("specs  is required"),
 ]);
 
 export const validateAddCart = withValidationErrors([
@@ -105,7 +105,36 @@ export const validatePurchaseAddress = withValidationErrors([
 //validate payment
 export const validateCreatePayment = withValidationErrors([
   body("items").notEmpty().withMessage("Items is required"),
-  body("totalPrice").notEmpty().withMessage("Total price is required"),
   body("address").notEmpty().withMessage("Address is required"),
   body("currency").notEmpty().withMessage("Currency is required"),
+]);
+
+export const validateUpdateUserProfile = withValidationErrors([
+  body("username").notEmpty().withMessage("username is required"),
+  body("phoneNumber").notEmpty().withMessage("phoneNumber is required"),
+  body("email")
+    .notEmpty()
+    .withMessage("Email is required")
+    .isEmail()
+    .withMessage("Invalid email format")
+    .custom(async (email, { req }) => {
+      const user = await User.findOne({ email: email });
+      if (user && user._id.toString() !== req.user.userId.toString()) {
+        throw new BadRequestError("email already exists");
+      }
+    }),
+]);
+
+export const validateUpdatePassword = withValidationErrors([
+  body("currentPassword")
+    .notEmpty()
+    .withMessage("Current Password is required"),
+  body("newPassword").notEmpty().withMessage("New Password is required"),
+  body("confirm").notEmpty().withMessage("Please Confirm new Password"),
+]);
+
+export const validateAddReview = withValidationErrors([
+  body("productId").notEmpty().withMessage("Product Id is required"),
+  body("rating").notEmpty().withMessage("Rating is required"),
+  body("review").notEmpty().withMessage("Review is required"),
 ]);

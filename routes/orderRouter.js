@@ -5,7 +5,6 @@ import {
 } from "../middlewares/authenticationMiddleware.js";
 import {
   cancelOrder,
-  confirmOrder,
   getAllOrders,
   getAllUserOrders,
   getSingleOrder,
@@ -13,7 +12,7 @@ import {
 } from "../controllers/orderController.js";
 
 const router = Router();
-router.post("/confirm", authenticateUser, confirmOrder);
+
 router.get("/all", authenticateUser, isAdmin, getAllOrders);
 router.get("/my-orders", authenticateUser, getAllUserOrders);
 router.get("/:id", authenticateUser, getSingleOrder);

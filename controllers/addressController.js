@@ -15,13 +15,11 @@ export const addAddress = async (req, res) => {
       pin,
       phone,
     };
-    // if (user.address.length < 1) {
-    //   user.defaultAddress = newAddress;
-    // }
-    user.address.push(newAddress);
-    if (user.address.length === 1) {
-      user.defaultAddress = user.address[0];
+    if (user.address.length < 1) {
+      user.defaultAddress = newAddress;
+      newAddress.isDefault = true;
     }
+    user.address.push(newAddress);
 
     await user.save();
 
@@ -45,8 +43,7 @@ export const updateAddress = async (req, res) => {
     const address = user.address.find(
       (addr) => addr._id.toString() === addressId.toString(),
     );
-    console.log(user.address);
-    if (!address) throw new NotFoundError('Address not found');
+    if (!address) throw new NotFoundError("Address not found");
     if (name) address.name = name;
     if (street) address.street = street;
     if (state) address.state = state;
@@ -127,6 +124,11 @@ export const makeDefaultAddress = async (req, res) => {
     const user = await User.findById(userId);
     if (!user) throw new NotFoundError('No user found');
 
+    const oldDefault = user.address.find((addr) => addr.isDefault === true);
+    if (oldDefault) {
+      oldDefault.isDefault = false;
+    }
+
     const address = user.address.find(
       (addr) => addr._id.toString() === addressId.toString(),
     );
@@ -135,6 +137,8 @@ export const makeDefaultAddress = async (req, res) => {
       throw new NotFoundError('Address not found');
     }
 
+    // set as default
+    address.isDefault = true;
     user.defaultAddress = address;
 
     await user.save();

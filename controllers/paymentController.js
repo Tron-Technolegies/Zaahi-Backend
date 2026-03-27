@@ -2,19 +2,48 @@ import mongoose from "mongoose";
 import Order from "../models/Order.js";
 import Payment from "../models/Payment.js";
 import { createStripePaymentIntent } from "../services/stripeService.js";
+import User from "../models/User.js";
+import { BadRequestError, NotFoundError } from "../errors/customErrors.js";
+import Product from "../models/Product.js";
+import stripe from "../config/stripe.js";
 
 export const createPaymentIntent = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const { items, totalPrice, address, currency } = req.body;
+    const { items, address, currency } = req.body;
     const itemObj = JSON.parse(items);
+    const orderItems = [];
+    let totalPrice = 0;
+    for (const item of itemObj) {
+      const product = await Product.findById(item.product).session(session);
+      if (!product) throw new NotFoundError("Product Not found");
+      const variant = product.variants.find((v) => v.size === item.size);
+      if (!variant) throw new BadRequestError("Invalid variant");
+      if (variant.stock < item.qty)
+        throw new BadRequestError("Insufficient Stock");
+      const itemTotal = variant.price * item.qty;
+      totalPrice += itemTotal;
+      orderItems.push({
+        product: product._id,
+        productName: product.productName,
+        image: product.image?.url,
+        variant: {
+          size: variant.size,
+        },
+        qty: item.qty,
+        price: variant.price,
+      });
+    }
     const addressObj = JSON.parse(address);
+    const user = await User.findById(req.user.userId).session(session);
+    if (!user) throw new NotFoundError("No user found");
+
     const order = new Order({
       user: req.user.userId,
       totalPrice,
       currency,
-      orderItems: itemObj,
+      orderItems: orderItems,
       address: addressObj,
     });
     const paymentIntent = await createStripePaymentIntent({
@@ -31,6 +60,8 @@ export const createPaymentIntent = async (req, res) => {
       amount: order.totalPrice,
       currency: order.currency,
     });
+    user.cart = [];
+    await user.save({ session });
     await order.save({ session });
     await payment.save({ session });
     await session.commitTransaction();
@@ -47,7 +78,6 @@ export const createPaymentIntent = async (req, res) => {
 
 export const stripeWebhook = async (req, res) => {
   const sig = req.headers["stripe-signature"];
-
   let event;
 
   try {
@@ -61,52 +91,78 @@ export const stripeWebhook = async (req, res) => {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  switch (event.type) {
-    case "payment_intent.succeeded": {
+  if (event.type === "payment_intent.succeeded") {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
       const paymentIntent = event.data.object;
 
-      const payment = await Payment.findOne({
-        paymentIntentId: paymentIntent.id,
-      });
+      // ✅ atomic update (idempotency safe)
+      const payment = await Payment.findOneAndUpdate(
+        {
+          paymentIntentId: paymentIntent.id,
+          status: { $ne: "succeeded" },
+        },
+        {
+          status: "succeeded",
+          paymentMethod: paymentIntent.payment_method,
+        },
+        { new: true, session },
+      );
 
-      if (!payment) break;
-      if (payment.status === "succeeded") {
+      if (!payment) {
+        await session.abortTransaction();
+        session.endSession();
         return res.json({ received: true });
       }
 
-      payment.status = "succeeded";
-      payment.paymentMethod = paymentIntent.payment_method;
-
-      await payment.save();
-
-      await Order.findByIdAndUpdate(payment.order, {
-        paymentStatus: "paid",
-        status: "Confirmed",
-      });
-
-      break;
-    }
-
-    case "payment_intent.payment_failed": {
-      const paymentIntent = event.data.object;
-
-      await Payment.findOneAndUpdate(
-        { paymentIntentId: paymentIntent.id },
-        { status: "failed" },
+      const order = await Order.findByIdAndUpdate(
+        payment.order,
+        {
+          paymentStatus: "paid",
+          status: "Confirmed",
+        },
+        { new: true, session },
       );
 
-      break;
-    }
-    case "payment_intent.canceled": {
-      const intent = event.data.object;
+      if (!order) throw new Error("Order not found");
 
-      await Payment.findOneAndUpdate(
-        { paymentIntentId: intent.id },
-        { status: "cancelled" },
-      );
+      // ✅ deduct stock safely
+      for (const item of order.orderItems) {
+        const product = await Product.findById(item.product).session(session);
+        if (!product) continue;
 
-      break;
+        const variant = product.variants.find(
+          (v) => v.size === item.variant.size,
+        );
+        if (!variant) continue;
+
+        variant.stock = Math.max(0, variant.stock - item.qty);
+        await product.save({ session });
+      }
+
+      await session.commitTransaction();
+      session.endSession();
+    } catch (err) {
+      await session.abortTransaction();
+      session.endSession();
+      console.error("Webhook error:", err);
     }
+  }
+
+  if (event.type === "payment_intent.payment_failed") {
+    await Payment.findOneAndUpdate(
+      { paymentIntentId: event.data.object.id },
+      { status: "failed" },
+    );
+  }
+
+  if (event.type === "payment_intent.canceled") {
+    await Payment.findOneAndUpdate(
+      { paymentIntentId: event.data.object.id },
+      { status: "cancelled" },
+    );
   }
 
   res.json({ received: true });

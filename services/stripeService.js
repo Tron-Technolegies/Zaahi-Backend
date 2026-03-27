@@ -15,8 +15,8 @@ export const createStripePaymentIntent = async ({
       },
 
       metadata: {
-        orderId,
-        userId,
+        orderId: orderId.toString(),
+        userId: userId.toString(),
       },
     },
     {

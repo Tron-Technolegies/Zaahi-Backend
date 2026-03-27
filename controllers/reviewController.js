@@ -1,8 +1,11 @@
 import { BadRequestError, NotFoundError } from "../errors/customErrors.js";
+import { formatImage } from "../middlewares/multerMiddleware.js";
+import { v2 as cloudinary } from "cloudinary";
 import Product from "../models/Product.js";
 import Review from "../models/Review.js";
 import User from "../models/User.js";
 import mongoose from "mongoose";
+import { cleanupCloudinaryImages } from "../services/cloudinary.js";
 
 // export const addAReview = async (req, res) => {
 //   try {
@@ -41,8 +44,10 @@ import mongoose from "mongoose";
 // };
 
 export const addAReview = async (req, res) => {
+  let uploadedPublicIds = [];
   try {
     const { productId, review, rating } = req.body;
+    const { userId } = req.user;
 
     if (!rating || rating < 1 || rating > 5) {
       throw new BadRequestError("Rating must be between 1 and 5");
@@ -53,41 +58,38 @@ export const addAReview = async (req, res) => {
       throw new NotFoundError("No product found");
     }
 
-    const existingReview = await Review.findOne({
-      user: req.user.userId,
-      product: productId,
-    });
+    const user = await User.findById(userId);
+    if (!user) throw new NotFoundError("No user found");
 
-    if (existingReview) {
-      throw new BadRequestError("User already reviewed this product");
+    const uploadSingle = async (file) => {
+      const formatted = formatImage(file);
+      const res = await cloudinary.uploader.upload(formatted);
+      uploadedPublicIds.push(res.public_id);
+      return {
+        url: res.secure_url,
+        publicId: res.public_id,
+      };
+    };
+
+    let reviewImage = null;
+
+    if (req.files?.image?.[0]) {
+      reviewImage = await uploadSingle(req.files.image[0]);
     }
 
-    const user = await User.findById(req.user.userId)
-      .select("orders")
-      .populate("orders", "product status");
-
-    const isDelivered = user.orders.find(
-      (order) =>
-        order.product.toString() === productId.toString() &&
-        order.status === "Delivered",
-    );
-
-    if (!isDelivered) {
-      throw new BadRequestError(
-        "You can review this product only after delivery",
-      );
-    }
-
-    const newReview = await Review.create({
+    const newReview = new Review({
       user: req.user.userId,
       product: productId,
       rating,
       review,
+      image: reviewImage,
     });
 
+    await newReview.save();
+
     product.totalReviews = (product.totalReviews || 0) + 1;
-    product.sumOfRating = (product.sumOfRating || 0) + rating;
-    product.rating = product.sumOfRating / product.totalReviews;
+    product.sumRating = (product.sumRating || 0) + Number(rating);
+    product.rating = product.sumRating / product.totalReviews;
 
     await product.save();
 
@@ -96,20 +98,56 @@ export const addAReview = async (req, res) => {
       review: newReview,
     });
   } catch (error) {
+    await cleanupCloudinaryImages(uploadedPublicIds);
     res.status(error.statusCode || 500).json({ error: error.message });
   }
-  console.log("DB NAME 👉", mongoose.connection.name);
 };
 
 export const getAllProductReview = async (req, res) => {
   try {
     const { id } = req.params;
-    const reviews = await Review.find({ product: id }).populate(
-      "user",
-      "username",
-    );
+    const { currentPage } = req.query;
+    const page = Number(currentPage);
+    const limit = 10;
+    const skip = (page - 1) * limit;
+    const reviews = await Review.find({ product: id })
+      .populate("user", "username")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    const total = await Review.countDocuments({ product: id });
+    const ratingStats = await Review.aggregate([
+      { $match: { product: new mongoose.Types.ObjectId(id) } },
+      {
+        $group: {
+          _id: "$rating",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
 
-    res.status(200).json(reviews);
+    // 👉 Convert to clean format
+    const breakdown = {
+      oneStar: 0,
+      twoStar: 0,
+      threeStar: 0,
+      fourStar: 0,
+      fiveStar: 0,
+    };
+
+    ratingStats.forEach((item) => {
+      if (item._id === 1) breakdown.oneStar = item.count;
+      if (item._id === 2) breakdown.twoStar = item.count;
+      if (item._id === 3) breakdown.threeStar = item.count;
+      if (item._id === 4) breakdown.fourStar = item.count;
+      if (item._id === 5) breakdown.fiveStar = item.count;
+    });
+    res.status(200).json({
+      reviews,
+      hasMore: skip + reviews.length < total,
+      breakdown,
+      total,
+    });
   } catch (error) {
     res.status(error.statusCode || 500).json({ error: error.message });
   }
@@ -122,4 +160,44 @@ export const getAllTestimonials = async (req, res) => {
     .limit(6);
 
   res.status(200).json(reviews);
+};
+
+export const getRandomReviews = async (req, res) => {
+  try {
+    const reviews = await Review.aggregate([
+      { $match: { image: { $ne: null } } },
+      { $sample: { size: 10 } },
+      {
+        $lookup: {
+          from: "users", // collection name in MongoDB
+          localField: "user",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+
+      // convert array → object
+      {
+        $unwind: {
+          path: "$user",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          review: 1,
+          rating: 1,
+          image: 1,
+          createdAt: 1,
+          "user._id": 1,
+          "user.username": 1,
+          "user.email": 1, // remove if not needed
+        },
+      },
+    ]);
+
+    res.status(200).json(reviews);
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ error: error.message });
+  }
 };
