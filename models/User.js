@@ -29,7 +29,7 @@ const AddressSchema = new Schema({
 const cartSchema = new Schema({
   product: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Product",
+    ref: 'Product',
   },
   variant: {
     size: {
@@ -67,8 +67,8 @@ const UserSchema = new Schema(
     },
     role: {
       type: String,
-      enum: ["Customer", "Admin"],
-      default: "Customer",
+      enum: ['Customer', 'Admin'],
+      default: 'Customer',
     },
     address: {
       type: [AddressSchema],
@@ -78,19 +78,25 @@ const UserSchema = new Schema(
     },
     orders: {
       type: [mongoose.Schema.Types.ObjectId],
-      ref: "Order",
+      ref: 'Order',
     },
     cart: {
       type: [cartSchema],
     },
     wishlist: {
       type: [mongoose.Schema.Types.ObjectId],
-      ref: "Product",
+      ref: 'Product',
       default: [],
+    },
+    avatar: {
+      type: String,
+    },
+    avatarPublicId: {
+      type: String,
     },
   },
   { timestamps: true },
 );
 
-const User = model("User", UserSchema);
+const User = model('User', UserSchema);
 export default User;
