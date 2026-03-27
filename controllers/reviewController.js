@@ -161,3 +161,43 @@ export const getAllTestimonials = async (req, res) => {
 
   res.status(200).json(reviews);
 };
+
+export const getRandomReviews = async (req, res) => {
+  try {
+    const reviews = await Review.aggregate([
+      { $match: { image: { $ne: null } } },
+      { $sample: { size: 10 } },
+      {
+        $lookup: {
+          from: "users", // collection name in MongoDB
+          localField: "user",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+
+      // convert array → object
+      {
+        $unwind: {
+          path: "$user",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          review: 1,
+          rating: 1,
+          image: 1,
+          createdAt: 1,
+          "user._id": 1,
+          "user.username": 1,
+          "user.email": 1, // remove if not needed
+        },
+      },
+    ]);
+
+    res.status(200).json(reviews);
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ error: error.message });
+  }
+};

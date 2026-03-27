@@ -187,12 +187,8 @@ export const updateOrderStatus = async (req, res) => {
     if (!order) throw new NotFoundError("No order Found");
     order.status = status;
     await order.save();
-    const populateOrder = await Order.findById(orderId)
-      .populate("user", "username")
-      .populate("product", "productName price");
     res.status(200).json({
       message: "order status updated successfully",
-      order: populateOrder,
     });
   } catch (error) {
     res.status(error.statusCode || 500).json({ error: error.message });

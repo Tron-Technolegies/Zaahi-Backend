@@ -37,8 +37,8 @@ app.post(
   stripeWebhook,
 );
 app.use(express.json());
-if(process.env.NODE_ENV === "development"){
-  app.use(morgan("tiny"))
+if (process.env.NODE_ENV === "development") {
+  app.use(morgan("tiny"));
 }
 app.use(
   cors({
@@ -47,9 +47,9 @@ app.use(
 
       const allowedOrigins = [
         "http://localhost:5173",
-        "http://localhost:4000",
-        "http://localhost:5174",
-        "http://localhost:5175",
+        "http://localhost:4173",
+        "https://zaahiadmin.netlify.app",
+        "https://zaahiapp.netlify.app",
       ];
 
       if (allowedOrigins.includes(origin)) {
@@ -85,7 +85,7 @@ app.use("/api/v1/category", categoryRouter);
 app.use("/api/v1/product", productRouter);
 app.use("/api/v1/cart", authenticateUser, cartRouter);
 app.use("/api/v1/address", authenticateUser, addressRouter);
-app.use("/api/v1/review", authenticateUser, reviewRouter);
+app.use("/api/v1/review", reviewRouter);
 app.use("/api/v1/purchase", authenticateUser, purchaseRouter);
 app.use("/api/v1/order", orderRouter);
 app.use("/api/v1/wishlist", authenticateUser, wishlistRouter);
