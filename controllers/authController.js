@@ -34,9 +34,10 @@ export const loginUser = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "30d" },
     );
+    const tenDay = 1000 * 60 * 60 * 24 * 10;
     res.cookie("token", token, {
       httpOnly: true,
-      expires: new Date(Date.now() + 24 * 60 * 60 * 1000 * 30),
+      expires: new Date(Date.now() + tenDay),
       secure: process.env.NODE_ENV === "production",
     });
     res.status(200).json({ message: "Logged in success" });
