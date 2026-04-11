@@ -77,7 +77,7 @@ export const getAllProducts = async (req, res) => {
       queryObject.productName = { $regex: search, $options: "i" };
     }
     if (category && category !== "ALL") {
-      queryObject.category = category;
+      queryObject.category = { $regex: category, $options: "i" };
     }
     if (minPrice && maxPrice) {
       queryObject.basePrice = { $lte: maxPrice, $gte: minPrice };
