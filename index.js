@@ -48,8 +48,10 @@ app.use(
       const allowedOrigins = [
         "http://localhost:5173",
         "http://localhost:4173",
-        "https://zaahiadmin.netlify.app",
-        "https://zaahiapp.netlify.app",
+        "https://zaahidesigns.netlify.app",
+        "https://zaahidesignsadmin.netlify.app",
+        "https://zaahidesigns.com",
+        "https://admin.zaahidesigns.com",
       ];
 
       if (allowedOrigins.includes(origin)) {
