@@ -1,5 +1,4 @@
 import * as dotenv from "dotenv";
-
 dotenv.config();
 import express from "express";
 import cors from "cors";
@@ -77,7 +76,7 @@ cloudinary.config({
 });
 
 app.get("/", (req, res) => {
-  res.send("<h1>Welcome to API Services</h1>");
+  res.json({ meesage: "Welcome to Zaahi API" });
 });
 //Our API Routes
 app.use("/api/v1/auth", authRouter);
