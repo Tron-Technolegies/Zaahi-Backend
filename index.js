@@ -17,6 +17,7 @@ import wishlistRouter from "./routes/wishlistRouter.js";
 import orderRouter from "./routes/orderRouter.js";
 import paymentRouter from "./routes/paymentRouter.js";
 import razorpayRouter from "./routes/razorPayRouter.js";
+import statsRouter from "./routes/statsRouter.js";
 import { v2 as cloudinary } from "cloudinary";
 import errorHandleMiddleware from "./middlewares/errorHandlingMiddleware.js";
 
@@ -94,6 +95,7 @@ app.use("/api/v1/wishlist", authenticateUser, wishlistRouter);
 app.use("/api/v1/payment", authenticateUser, paymentRouter);
 app.use("/api/v1/coupon", authenticateUser, isAdmin, couponRouter);
 app.use("/api/v1/razorpay", authenticateUser, razorpayRouter);
+app.use("/api/v1/stats", authenticateUser, isAdmin, statsRouter);
 //404 error handling
 app.use("/*path", (req, res) => {
   res.status(404).json({ error: "Route not Found..!!!" });
