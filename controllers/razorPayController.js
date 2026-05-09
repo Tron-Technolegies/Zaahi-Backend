@@ -15,6 +15,7 @@ export const createRazorPayOrder = async (req, res) => {
     const itemObj = JSON.parse(items);
     const orderItems = [];
     let totalPrice = 0;
+
     for (const item of itemObj) {
       const product = await Product.findById(item.product).session(session);
       if (!product) throw new NotFoundError("Product not found");
