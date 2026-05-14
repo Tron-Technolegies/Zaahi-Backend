@@ -2,6 +2,7 @@ import * as dotenv from "dotenv";
 dotenv.config();
 import express from "express";
 import cors from "cors";
+import cron from "node-cron";
 import mongoose from "mongoose";
 import authRouter from "./routes/authRouter.js";
 import userRouter from "./routes/userRouter.js";
@@ -18,6 +19,7 @@ import orderRouter from "./routes/orderRouter.js";
 import paymentRouter from "./routes/paymentRouter.js";
 import razorpayRouter from "./routes/razorPayRouter.js";
 import statsRouter from "./routes/statsRouter.js";
+import exchangeRouter from "./routes/exchangeRouter.js";
 import { v2 as cloudinary } from "cloudinary";
 import errorHandleMiddleware from "./middlewares/errorHandlingMiddleware.js";
 
@@ -28,6 +30,7 @@ import {
 import cookieParser from "cookie-parser";
 import { stripeWebhook } from "./controllers/paymentController.js";
 import morgan from "morgan";
+import { getExchangeRates } from "./cronJobs/getExchangeRates.js";
 
 const app = express();
 const port = 3000;
@@ -48,7 +51,7 @@ app.use(
 
       const allowedOrigins = [
         "http://localhost:5173",
-        "http://localhost:4173",
+        "http://localhost:5174",
         "https://zaahidesigns.netlify.app",
         "https://zaahidesignsadmin.netlify.app",
         "https://zaahidesigns.com",
@@ -96,6 +99,7 @@ app.use("/api/v1/payment", authenticateUser, paymentRouter);
 app.use("/api/v1/coupon", authenticateUser, isAdmin, couponRouter);
 app.use("/api/v1/razorpay", authenticateUser, razorpayRouter);
 app.use("/api/v1/stats", authenticateUser, isAdmin, statsRouter);
+app.use("/api/v1/exchange", exchangeRouter);
 //404 error handling
 app.use("/*path", (req, res) => {
   res.status(404).json({ error: "Route not Found..!!!" });
@@ -106,6 +110,13 @@ app.use(errorHandleMiddleware);
 try {
   await mongoose.connect(process.env.MONGODB_URI);
   console.log("Database Connected Successfully..");
+  cron.schedule(
+    "15 0 * * *",
+    async () => {
+      await getExchangeRates();
+    },
+    { timezone: "Asia/Dubai" },
+  );
   app.listen(port, () => {
     console.log(`server started listening at port ${port}`);
   });
