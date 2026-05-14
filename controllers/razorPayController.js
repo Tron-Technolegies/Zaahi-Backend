@@ -6,12 +6,21 @@ import Order from "../models/Order.js";
 import razorpay from "../services/razorpay.js";
 import Payment from "../models/Payment.js";
 import crypto from "crypto";
+import ExchangeRate from "../models/ExchangeRate.js";
 
 export const createRazorPayOrder = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
     const { items, address, currency } = req.body;
+    let exchange;
+    if (currency === "AED") {
+      exchange = await ExchangeRate.findOne().session(session);
+      if (!exchange)
+        throw new BadRequestError(
+          "AED payments are not accepted at the moment",
+        );
+    }
     const itemObj = JSON.parse(items);
     const orderItems = [];
     let totalPrice = 0;
@@ -34,7 +43,12 @@ export const createRazorPayOrder = async (req, res) => {
           size: variant.size,
         },
         qty: item.qty,
-        price: variant.price,
+        price:
+          currency === "INR"
+            ? variant.price
+            : currency === "AED" && exchange
+              ? variant.price * exchange?.INRtoAED
+              : variant.price,
       });
     }
     const addressObj = JSON.parse(address);
@@ -43,24 +57,41 @@ export const createRazorPayOrder = async (req, res) => {
 
     const order = new Order({
       user: req.user.userId,
-      totalPrice,
+      totalPrice:
+        currency === "INR"
+          ? totalPrice
+          : currency === "AED" && exchange
+            ? Math.ceil(totalPrice * exchange?.INRtoAED)
+            : totalPrice,
       currency,
       orderItems: orderItems,
       address: addressObj,
       paymentStatus: "pending",
     });
 
+    let razorPayAmount =
+      currency === "INR"
+        ? totalPrice
+        : currency === "AED" && exchange
+          ? Math.ceil(totalPrice * exchange?.INRtoAED)
+          : totalPrice;
     const razorPayOrder = await razorpay.orders.create({
-      amount: totalPrice * 100,
+      amount: razorPayAmount * 100,
       currency: currency || "INR",
       receipt: `order_${order._id}`,
     });
+    console.log(razorPayOrder);
 
     const payment = new Payment({
       order: order._id,
       user: req.user.userId,
       paymentIntentId: razorPayOrder.id,
-      amount: totalPrice,
+      amount:
+        currency === "INR"
+          ? totalPrice
+          : currency === "AED" && exchange
+            ? Math.ceil(totalPrice * exchange?.INRtoAED)
+            : totalPrice,
       currency,
       status: "pending",
     });
