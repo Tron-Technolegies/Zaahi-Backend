@@ -113,6 +113,8 @@ try {
   cron.schedule(
     "15 0 * * *",
     async () => {
+      console.log("cron for exchange rate started");
+
       await getExchangeRates();
     },
     { timezone: "Asia/Dubai" },
