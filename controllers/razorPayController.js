@@ -7,6 +7,7 @@ import razorpay from "../services/razorpay.js";
 import Payment from "../models/Payment.js";
 import crypto from "crypto";
 import ExchangeRate from "../models/ExchangeRate.js";
+import { sendMail, transporter } from "../services/nodeMailer.js";
 
 export const createRazorPayOrder = async (req, res) => {
   const session = await mongoose.startSession();
@@ -80,7 +81,6 @@ export const createRazorPayOrder = async (req, res) => {
       currency: currency || "INR",
       receipt: `order_${order._id}`,
     });
-    console.log(razorPayOrder);
 
     const payment = new Payment({
       order: order._id,
@@ -169,6 +169,47 @@ export const verifyRazorPayPayment = async (req, res) => {
     }
     await session.commitTransaction();
     session.endSession();
+    const user = await User.findById(order.user);
+    if (!user) throw new NotFoundError("User not found");
+    const orderedItems = order.orderItems
+      .map(
+        (item) =>
+          `Product: ${item.productName} | Qty: ${item.qty} | Size: ${item.variant.size}`,
+      )
+      .join("\n");
+    const mailOptions = {
+      from: {
+        name: "Zaahi Designs",
+        address: process.env.NODEMAILER_EMAIL,
+      },
+      to: "zaahidesigns@gmail.com",
+      subject: "New Order Placed",
+      text: `A new order has been placed Order Id: ${order._id}
+      
+      Ordered Items:
+${orderedItems}
+      `,
+    };
+    const mailOptions2 = {
+      from: {
+        name: "Zaahi Designs",
+        address: process.env.NODEMAILER_EMAIL,
+      },
+      to: user.email,
+      subject: "New Order Placed",
+      text: `
+Thank you for your order.
+
+Order ID: ${order._id}
+
+Ordered Items:
+${orderedItems}
+
+Your order has been confirmed successfully.
+  `,
+    };
+    await sendMail(transporter, mailOptions);
+    await sendMail(transporter, mailOptions2);
     res.json({ success: true });
   } catch (error) {
     await session.abortTransaction();
