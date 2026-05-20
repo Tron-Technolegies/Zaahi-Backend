@@ -53,11 +53,16 @@ export const createRazorPayOrder = async (req, res) => {
       });
     }
     const addressObj = JSON.parse(address);
-    const user = await User.findById(req.user.userId).session(session);
-    if (!user) throw new NotFoundError("No user found");
+    let user;
+    if (req.user.userId) {
+      user = await User.findById(req.user.userId).session(session);
+      if (!user) throw new NotFoundError("No user found");
+    }
 
     const order = new Order({
-      user: req.user.userId,
+      user: req.user.userId || undefined,
+      username: req.user.name || addressObj.name || undefined,
+      userEmail: user.email || addressObj.email || undefined,
       totalPrice:
         currency === "INR"
           ? totalPrice
@@ -84,7 +89,8 @@ export const createRazorPayOrder = async (req, res) => {
 
     const payment = new Payment({
       order: order._id,
-      user: req.user.userId,
+      user: req.user.userId || undefined,
+      username: req.user.name || addressObj.name || undefined,
       paymentIntentId: razorPayOrder.id,
       amount:
         currency === "INR"
@@ -95,8 +101,10 @@ export const createRazorPayOrder = async (req, res) => {
       currency,
       status: "pending",
     });
-    user.cart = [];
-    await user.save({ session });
+    if (user) {
+      user.cart = [];
+      await user.save({ session });
+    }
     await order.save({ session });
     await payment.save({ session });
 
@@ -169,8 +177,11 @@ export const verifyRazorPayPayment = async (req, res) => {
     }
     await session.commitTransaction();
     session.endSession();
-    const user = await User.findById(order.user);
-    if (!user) throw new NotFoundError("User not found");
+    let user;
+    if (order.user) {
+      const user = await User.findById(order.user);
+      if (!user) throw new NotFoundError("User not found");
+    }
     const orderedItems = order.orderItems
       .map(
         (item) =>
@@ -195,7 +206,7 @@ ${orderedItems}
         name: "Zaahi Designs",
         address: process.env.NODEMAILER_EMAIL,
       },
-      to: user.email,
+      to: user ? user.email : order.userEmail,
       subject: "New Order Placed",
       text: `
 Thank you for your order.
@@ -206,6 +217,10 @@ Ordered Items:
 ${orderedItems}
 
 Your order has been confirmed successfully.
+
+You can view the status of your order in the following link:
+
+https://zaahidesigns.com/orders/order-status/${order._id}
   `,
     };
     await sendMail(transporter, mailOptions);

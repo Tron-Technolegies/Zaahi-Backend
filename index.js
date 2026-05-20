@@ -97,7 +97,7 @@ app.use("/api/v1/order", orderRouter);
 app.use("/api/v1/wishlist", authenticateUser, wishlistRouter);
 app.use("/api/v1/payment", authenticateUser, paymentRouter);
 app.use("/api/v1/coupon", authenticateUser, isAdmin, couponRouter);
-app.use("/api/v1/razorpay", authenticateUser, razorpayRouter);
+app.use("/api/v1/razorpay", razorpayRouter);
 app.use("/api/v1/stats", authenticateUser, isAdmin, statsRouter);
 app.use("/api/v1/exchange", exchangeRouter);
 //404 error handling

@@ -68,6 +68,12 @@ const OrderSchema = new Schema(
       default: "aed",
     },
 
+    username: {
+      type: String,
+    },
+    userEmail: {
+      type: String,
+    },
     paymentStatus: {
       type: String,
       enum: ["pending", "paid", "failed", "cancelled"],
