@@ -6,10 +6,16 @@ import {
   verifyRazorPayPayment,
 } from "../controllers/razorPayController.js";
 import { validateCreatePayment } from "../middlewares/validationMiddleware.js";
+import { authenticateRazorPay } from "../middlewares/authenticationMiddleware.js";
 
 const router = Router();
 
-router.post("/create-order", validateCreatePayment, createRazorPayOrder);
+router.post(
+  "/create-order",
+  authenticateRazorPay,
+  validateCreatePayment,
+  createRazorPayOrder,
+);
 router.post("/verify-payment", verifyRazorPayPayment);
 router.post("/cancel-payment", paymentCancelled);
 router.post("/failed-payment", paymentFailed);

@@ -67,7 +67,18 @@ const OrderSchema = new Schema(
       type: String,
       default: "aed",
     },
-
+    shipping: {
+      type: Number,
+    },
+    vat: {
+      type: Number,
+    },
+    username: {
+      type: String,
+    },
+    userEmail: {
+      type: String,
+    },
     paymentStatus: {
       type: String,
       enum: ["pending", "paid", "failed", "cancelled"],

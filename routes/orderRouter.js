@@ -15,7 +15,7 @@ const router = Router();
 
 router.get("/all", authenticateUser, isAdmin, getAllOrders);
 router.get("/my-orders", authenticateUser, getAllUserOrders);
-router.get("/:id", authenticateUser, getSingleOrder);
+router.get("/:id", getSingleOrder);
 router.patch("/:orderId/status", authenticateUser, isAdmin, updateOrderStatus);
 router.patch("/:orderId/cancel", authenticateUser, cancelOrder);
 
