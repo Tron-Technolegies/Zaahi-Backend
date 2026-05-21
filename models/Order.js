@@ -67,7 +67,12 @@ const OrderSchema = new Schema(
       type: String,
       default: "aed",
     },
-
+    shipping: {
+      type: Number,
+    },
+    vat: {
+      type: Number,
+    },
     username: {
       type: String,
     },

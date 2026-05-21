@@ -20,6 +20,7 @@ import paymentRouter from "./routes/paymentRouter.js";
 import razorpayRouter from "./routes/razorPayRouter.js";
 import statsRouter from "./routes/statsRouter.js";
 import exchangeRouter from "./routes/exchangeRouter.js";
+import shippingRouter from "./routes/shippingRouter.js";
 import { v2 as cloudinary } from "cloudinary";
 import errorHandleMiddleware from "./middlewares/errorHandlingMiddleware.js";
 
@@ -100,6 +101,7 @@ app.use("/api/v1/coupon", authenticateUser, isAdmin, couponRouter);
 app.use("/api/v1/razorpay", razorpayRouter);
 app.use("/api/v1/stats", authenticateUser, isAdmin, statsRouter);
 app.use("/api/v1/exchange", exchangeRouter);
+app.use("/api/v1/shipping", shippingRouter);
 //404 error handling
 app.use("/*path", (req, res) => {
   res.status(404).json({ error: "Route not Found..!!!" });

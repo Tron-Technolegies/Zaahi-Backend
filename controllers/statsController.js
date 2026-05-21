@@ -15,7 +15,7 @@ export const getDashboardOverview = async (req, res) => {
       },
       {
         $group: {
-          _id: null,
+          _id: "$currency",
           totalRevenue: {
             $sum: "$totalPrice",
           },
@@ -23,7 +23,14 @@ export const getDashboardOverview = async (req, res) => {
       },
     ]);
 
-    const totalRevenue = revenueData[0]?.totalRevenue || 0;
+    const totalRevenue = {
+      INR: 0,
+      AED: 0,
+    };
+
+    revenueData.forEach((item) => {
+      totalRevenue[item._id] = item.totalRevenue;
+    });
 
     // =========================
     // TOTAL ORDERS

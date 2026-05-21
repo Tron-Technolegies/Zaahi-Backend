@@ -8,6 +8,7 @@ import Payment from "../models/Payment.js";
 import crypto from "crypto";
 import ExchangeRate from "../models/ExchangeRate.js";
 import { sendMail, transporter } from "../services/nodeMailer.js";
+import Shipping from "../models/Shipping.js";
 
 export const createRazorPayOrder = async (req, res) => {
   const session = await mongoose.startSession();
@@ -15,9 +16,15 @@ export const createRazorPayOrder = async (req, res) => {
   try {
     const { items, address, currency } = req.body;
     let exchange;
+    let shipping;
     if (currency === "AED") {
       exchange = await ExchangeRate.findOne().session(session);
       if (!exchange)
+        throw new BadRequestError(
+          "AED payments are not accepted at the moment",
+        );
+      shipping = await Shipping.findOne().session(session);
+      if (!shipping)
         throw new BadRequestError(
           "AED payments are not accepted at the moment",
         );
@@ -58,7 +65,10 @@ export const createRazorPayOrder = async (req, res) => {
       user = await User.findById(req.user.userId).session(session);
       if (!user) throw new NotFoundError("No user found");
     }
-
+    let vat = 0;
+    if (currency === "AED" && shipping) {
+      vat = (totalPrice * exchange?.INRtoAED * (shipping.VAT || 0)) / 100;
+    }
     const order = new Order({
       user: req.user.userId || undefined,
       username: req.user.name || addressObj.name || undefined,
@@ -67,9 +77,15 @@ export const createRazorPayOrder = async (req, res) => {
         currency === "INR"
           ? totalPrice
           : currency === "AED" && exchange
-            ? Math.ceil(totalPrice * exchange?.INRtoAED)
+            ? Math.ceil(
+                totalPrice * exchange?.INRtoAED +
+                  vat +
+                  (shipping?.shippingRate || 0),
+              )
             : totalPrice,
       currency,
+      shipping: shipping?.shippingRate || undefined,
+      vat: vat,
       orderItems: orderItems,
       address: addressObj,
       paymentStatus: "pending",
@@ -79,7 +95,11 @@ export const createRazorPayOrder = async (req, res) => {
       currency === "INR"
         ? totalPrice
         : currency === "AED" && exchange
-          ? Math.ceil(totalPrice * exchange?.INRtoAED)
+          ? Math.ceil(
+              totalPrice * exchange?.INRtoAED +
+                vat +
+                (shipping?.shippingRate || 0),
+            )
           : totalPrice;
     const razorPayOrder = await razorpay.orders.create({
       amount: razorPayAmount * 100,
@@ -96,7 +116,11 @@ export const createRazorPayOrder = async (req, res) => {
         currency === "INR"
           ? totalPrice
           : currency === "AED" && exchange
-            ? Math.ceil(totalPrice * exchange?.INRtoAED)
+            ? Math.ceil(
+                totalPrice * exchange?.INRtoAED +
+                  vat +
+                  (shipping?.shippingRate || 0),
+              )
             : totalPrice,
       currency,
       status: "pending",
